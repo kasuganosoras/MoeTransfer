@@ -58,7 +58,9 @@ moesendfile.sh 接收端IP地址 文件名
 ## 服务器搭建方法
 首先要准备好：
 1. PHP 7.0+ 版本
-2. Swoole 扩展支持
+2. PHP Swoole 扩展支持
+3. PHP Redis 扩展支持
+4. Redis 服务器
 
 然后安装：
 - 将项目 clone 到本地
