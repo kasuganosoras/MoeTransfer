@@ -1,11 +1,19 @@
 <?php
 use Swoole\Http\Server;
 
+$clients = new Swoole\Table(1024);
+$clients->column('fd', swoole_table::TYPE_INT, 4);
+$clients->column('opened', swoole_table::TYPE_INT, 4);
+$clients->column('length', swoole_table::TYPE_INT, 8);
+$clients->column('buffer', swoole_table::TYPE_STRING, 8192);
+$clients->create();
 $server = new Server("0.0.0.0", 812);
 $server->set([
-	'worker_num'      => 16,
-	'http_parse_post' => false,
+	'worker_num'         => 16,
+	'http_parse_post'    => false,
+	'package_max_length' => 1024 * 1024 * 40,
 ]);
+$server->clients = $clients;
 
 $server->on('request', function ($request, $response) {
 	$uri = $request->server['request_uri'];
@@ -38,7 +46,7 @@ $server->on('request', function ($request, $response) {
 					} else {
 						consoleLog("IP {$cip} Transfer data to {$exp[2]}, length: " . strlen($data));
 						$success = true;
-						for($i = 0;$i < ceil(strlen($data) / 2000);$i++) {
+						for($i = 0;$i < ceil(strlen($data) / 200000);$i++) {
 							if(!$success) break;
 							$buffer = getData($exp[2], "buffer");
 							$retry = 0;
@@ -47,10 +55,10 @@ $server->on('request', function ($request, $response) {
 									$success = false;
 									break;
 								}
-								usleep(100000);
+								usleep(50000);
 								$retry++;
 							}
-							$buffer = setData($exp[2], ["buffer" => base64_encode(substr($data, 2000 * $i, 2000))]);
+							$buffer = setData($exp[2], ["buffer" => base64_encode(substr($data, 200000 * $i, 200000))]);
 						}
 						if($success) {
 							$response->status(200);
@@ -101,7 +109,7 @@ $server->on('request', function ($request, $response) {
 							"length" => $length + strlen($buffer),
 						]);
 					}
-					usleep(100000);
+					usleep(50000);
 				}
 				delData($cip);
 				if($length == 0) {
